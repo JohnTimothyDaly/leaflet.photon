@@ -12,7 +12,10 @@ L.Control.Photon = L.Control.extend({
         submitDelay: 300,
         includePosition: true,
         noResultLabel: "No result",
-        feedbackEmail: "photon@komoot.de" // Set to null to remove feedback box
+        feedbackEmail: "photon@komoot.de", // Set to null to remove feedback box
+        initialState: {
+          closed: false
+        }
     },
 
     CACHE: '',
@@ -56,15 +59,23 @@ L.Control.Photon = L.Control.extend({
 
         this.createInput();
         this.createResultsContainer();
+
+        L.DomEvent.on(this.container, 'click', this.onClick, this);
+
         return this.container;
     },
 
     createInput: function () {
         this.input = L.DomUtil.create('input', 'photon-input', this.container);
+        if (this.options.initialState.closed) {
+          this.input.style.display = 'none';
+        }
         this.input.type = 'text';
         this.input.placeholder = this.options.placeholder;
         this.input.autocomplete = 'off';
-        L.DomEvent.disableClickPropagation(this.input);
+        L.DomEvent.on(this.input, 'click', function(e) {
+          e.stopPropagation();
+        });
 
         L.DomEvent.on(this.input, 'keydown', this.onKeyDown, this);
         L.DomEvent.on(this.input, 'keyup', this.onKeyUp, this);
@@ -84,6 +95,17 @@ L.Control.Photon = L.Control.extend({
         this.resultsContainer.style.top = t + 'px';
         var width = this.options.width ? this.options.width : this.input.offsetWidth - 2;
         this.resultsContainer.style.width = width + "px";
+    },
+
+    onClick: function(e) {
+      var isDisplayed = this.input.style.display != 'none';
+
+      if (isDisplayed) {
+        this.input.style.display = 'none';
+        this.input.value = '';
+      } else {
+        this.input.style.display = '';
+      }
     },
 
     onKeyDown: function (e) {
