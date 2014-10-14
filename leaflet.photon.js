@@ -87,8 +87,7 @@ L.Control.Photon = L.Control.extend({
         this.resultsContainer = L.DomUtil.create('ul', 'photon-autocomplete', document.querySelector('body'));
     },
 
-    resizeContainer: function()
-    {
+    resizeContainer: function() {
         var l = this.getLeft(this.input);
         var t = this.getTop(this.input) + this.input.offsetHeight;
         this.resultsContainer.style.left = l + 'px';
@@ -97,7 +96,7 @@ L.Control.Photon = L.Control.extend({
         this.resultsContainer.style.width = width + "px";
     },
 
-    onClick: function(e) {
+    toggleDisplay: function () {
       var isDisplayed = this.input.style.display != 'none';
 
       if (isDisplayed) {
@@ -106,6 +105,10 @@ L.Control.Photon = L.Control.extend({
       } else {
         this.input.style.display = '';
       }
+    },
+
+    onClick: function(e) {
+      this.toggleDisplay();
     },
 
     onKeyDown: function (e) {
@@ -243,6 +246,8 @@ L.Control.Photon = L.Control.extend({
     },
 
     onSelected: function (choice) {
+        this.toggleDisplay();
+
         return (this.options.onSelected || this._onSelected).call(this, choice);
     },
 
