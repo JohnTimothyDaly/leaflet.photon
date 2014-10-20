@@ -35,11 +35,11 @@ L.Control.Photon = L.Control.extend({
     },
 
     onAdd: function (map, options) {
-        this.map = map;
-        this.container = L.DomUtil.create('div', 'leaflet-photon');
-
-        this.options = L.Util.extend(this.options, options);
         var CURRENT = null;
+
+        this.map       = map;
+        this.container = L.DomUtil.create('div', 'leaflet-photon');
+        this.options   = L.Util.extend(this.options, options);
 
         try {
             Object.defineProperty(this, "CURRENT", {
@@ -60,27 +60,36 @@ L.Control.Photon = L.Control.extend({
         this.createInput();
         this.createResultsContainer();
 
-        L.DomEvent.on(this.container, 'click', this.onClick, this);
+        $(this.container).on('click', $.proxy(this.onClick, this));
 
         return this.container;
     },
 
     createInput: function () {
-        this.input = L.DomUtil.create('input', 'photon-input', this.container);
-        if (this.options.initialState.closed) {
-          this.input.style.display = 'none';
-        }
-        this.input.type = 'text';
-        this.input.placeholder = this.options.placeholder;
-        this.input.autocomplete = 'off';
-        L.DomEvent.on(this.input, 'click', function(e) {
-          e.stopPropagation();
-        });
+        var display = this.options.initialState.closed ? 'none' : '';
 
-        L.DomEvent.on(this.input, 'keydown', this.onKeyDown, this);
-        L.DomEvent.on(this.input, 'keyup', this.onKeyUp, this);
-        L.DomEvent.on(this.input, 'blur', this.onBlur, this);
-        L.DomEvent.on(this.input, 'focus', this.onFocus, this);
+        this.input = L.DomUtil.create('input', 'photon-input', this.container);
+
+        this.input.style.display = display;
+        this.input.type          = 'text';
+        this.input.placeholder   = this.options.placeholder;
+        this.input.autocomplete  = 'off';
+
+        this.bindEvents(this.input, display.length);
+    },
+
+    bindEvents: function(input) {
+        var $input = $(input);
+
+        $input.on('click',   function(e) { e.stopPropagation(); });
+        $input.on('keydown', $.proxy(this.onKeyDown, this));
+        $input.on('keyup',   $.proxy(this.onKeyUp, this));
+        $input.on('blur',    $.proxy(this.onBlur, this));
+        $input.on('focus',   $.proxy(this.onFocus, this));
+
+        if (isOpen) {
+          $(document).one('click', $.proxy(this.hideDisplay, this));
+        }
     },
 
     createResultsContainer: function () {
@@ -96,61 +105,73 @@ L.Control.Photon = L.Control.extend({
         this.resultsContainer.style.width = width + "px";
     },
 
-    toggleDisplay: function () {
-      var isDisplayed = this.input.style.display != 'none';
+    showDisplay: function(e) {
+        e.stopPropagation();
+        this.input.style.display = '';
+        $(this.input).focus();
+        $(document).one('click', $.proxy(this.hideDisplay, this));
+    },
 
-      if (isDisplayed) {
+    hideDisplay: function(e) {
         this.input.style.display = 'none';
         this.input.value = '';
-      } else {
-        this.input.style.display = '';
-      }
+    },
+
+    toggleDisplay: function (e) {
+        var isDisplayed = this.input.style.display != 'none';
+
+        if (isDisplayed) {
+            this.hideDisplay(e);
+        } else {
+            this.showDisplay(e);
+        }
     },
 
     onClick: function(e) {
-      this.toggleDisplay();
+        this.toggleDisplay();
     },
 
     onKeyDown: function (e) {
         switch (e.keyCode) {
             case this.KEYS.TAB:
-                if(this.CURRENT !== null)
-                {
+                if (this.CURRENT !== null) {
                     this.setChoice();
                 }
-                L.DomEvent.stop(e);
+                e.preventDefault();
+                e.stopPropagation();
                 break;
             case this.KEYS.RETURN:
-                L.DomEvent.stop(e);
+                e.preventDefault();
+                e.stopPropagation();
                 this.setChoice();
                 break;
             case this.KEYS.ESC:
-                L.DomEvent.stop(e);
+                e.preventDefault();
+                e.stopPropagation();
                 this.hide();
                 this.input.blur();
                 break;
             case this.KEYS.DOWN:
-                if(this.RESULTS.length > 0) {
-                    if(this.CURRENT !== null && this.CURRENT < this.RESULTS.length - 1) { // what if one resutl?
+                if (this.RESULTS.length > 0) {
+                    if (this.CURRENT !== null && this.CURRENT < this.RESULTS.length - 1) { // what if one resutl?
                         this.CURRENT++;
                         this.highlight();
-                    }
-                    else if(this.CURRENT === null) {
+                    } else if(this.CURRENT === null) {
                         this.CURRENT = 0;
                         this.highlight();
                     }
                 }
                 break;
             case this.KEYS.UP:
-                if(this.CURRENT !== null) {
-                    L.DomEvent.stop(e);
+                if (this.CURRENT !== null) {
+                    e.preventDefault();
+                    e.stopPropagation();
                 }
-                if(this.RESULTS.length > 0) {
-                    if(this.CURRENT > 0) {
+                if (this.RESULTS.length > 0) {
+                    if (this.CURRENT > 0) {
                         this.CURRENT--;
                         this.highlight();
-                    }
-                    else if(this.CURRENT === 0) {
+                    } else if (this.CURRENT === 0) {
                         this.CURRENT = null;
                         this.highlight();
                     }
@@ -172,8 +193,7 @@ L.Control.Photon = L.Control.extend({
             this.KEYS.ALT,
             this.KEYS.CTRL
         ];
-        if (special.indexOf(e.keyCode) === -1)
-        {
+        if (special.indexOf(e.keyCode) === -1) {
             if (typeof this.submitDelay === "number") {
                 window.clearTimeout(this.submitDelay);
                 delete this.submitDelay;
@@ -224,14 +244,13 @@ L.Control.Photon = L.Control.extend({
             this.clear();
             return;
         }
-        if(!val) {
+        if (!val) {
             this.clear();
             return;
         }
-        if( val + '' === this.CACHE + '') {
+        if (val + '' === this.CACHE + '') {
             return;
-        }
-        else {
+        } else {
             this.CACHE = val;
         }
         this._do_search(val);
@@ -247,7 +266,6 @@ L.Control.Photon = L.Control.extend({
 
     onSelected: function (choice) {
         this.toggleDisplay();
-
         return (this.options.onSelected || this._onSelected).call(this, choice);
     },
 
@@ -257,11 +275,15 @@ L.Control.Photon = L.Control.extend({
             details = [],
             type = this.formatType(feature);
         title.innerHTML = feature.properties.name;
-        if (type) details.push(type);
+        if (type) {
+            details.push(type);
+        }
         if (feature.properties.city && feature.properties.city !== feature.properties.name) {
             details.push(feature.properties.city);
         }
-        if (feature.properties.country) details.push(feature.properties.country);
+        if (feature.properties.country) {
+            details.push(feature.properties.country);
+        }
         detailsContainer.innerHTML = details.join(', ');
     },
 
@@ -278,31 +300,38 @@ L.Control.Photon = L.Control.extend({
     },
 
     createResult: function (feature) {
-        var el = L.DomUtil.create('li', '', this.resultsContainer);
+        var el   = L.DomUtil.create('li', '', this.resultsContainer);
+        var $el  = $(el);
+        var self = this;
+
         this.formatResult(feature, el);
         var result = {
             feature: feature,
             el: el
         };
+
         // Touch handling needed
-        L.DomEvent.on(el, 'mouseover', function (e) {
-            this.CURRENT = result;
-            this.highlight();
-        }, this);
-        L.DomEvent.on(el, 'mousedown', function (e) {
-            this.setChoice();
-        }, this);
+        $el.on('mouseover', function(e) {
+            self.CURRENT = result;
+            self.highlight();
+        });
+        $el.on('mousedown', function(e) {
+            self.setChoice();
+        });
+
         return result;
     },
 
     resultToIndex: function (result) {
         var out = null;
+
         this.forEach(this.RESULTS, function (item, index) {
             if (item === result) {
                 out = index;
                 return;
             }
         });
+
         return out;
     },
 
@@ -335,8 +364,7 @@ L.Control.Photon = L.Control.extend({
         this.forEach(this.RESULTS, function (item, index) {
             if (index === self.CURRENT) {
                 L.DomUtil.addClass(item.el, 'on');
-            }
-            else {
+            } else {
                 L.DomUtil.removeClass(item.el, 'on');
             }
         });
@@ -380,7 +408,6 @@ L.Control.Photon = L.Control.extend({
             }, self = this;
         this.xhr.open('GET', this.options.url + this.buildQueryString(params), true);
         this.xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-
         this.xhr.onload = function(e) {
             self.fire('ajax:return');
             if (this.status == 200) {
@@ -392,7 +419,6 @@ L.Control.Photon = L.Control.extend({
             }
             delete this.xhr;
         };
-
         this.fire('ajax:send');
         this.xhr.send();
     },
