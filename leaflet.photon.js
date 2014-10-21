@@ -78,7 +78,7 @@ L.Control.Photon = L.Control.extend({
         this.bindEvents(this.input, display.length);
     },
 
-    bindEvents: function(input) {
+    bindEvents: function(input, isOpen) {
         var $input = $(input);
 
         $input.on('click',   function(e) { e.stopPropagation(); });
@@ -128,7 +128,7 @@ L.Control.Photon = L.Control.extend({
     },
 
     onClick: function(e) {
-        this.toggleDisplay();
+        this.toggleDisplay(e);
     },
 
     onKeyDown: function (e) {
